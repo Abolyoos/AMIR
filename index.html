@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Hindrar mobilen från att zooma in när man trycker snabbt på knapparna -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Amir - Robot Control</title>
 
     <style>
@@ -11,36 +12,41 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-touch-callout: none; /* Hindrar menyer vid långtryck på mobil */
+            -webkit-user-select: none;   /* Hindrar markering av text */
+            user-select: none;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0d0d0d;
             color: #ffffff;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: space-between;
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
+            overflow-x: hidden;
         }
 
         h1 {
-            margin-bottom: 15px;
+            font-size: 1.4rem;
+            margin: 5px 0 10px 0;
             color: #00e676;
+            text-align: center;
         }
 
+        /* Maximera videon för mobilen */
         .stream-container {
             width: 100%;
-            max-width: 640px;
-            /* Ändra height från fixed 360px till auto så att höjden anpassas efter bildförhållandet */
-            height: auto;
-            min-height: 360px;
-            background-color: #1e1e1e;
-            border-radius: 12px;
+            max-width: 500px;
+            aspect-ratio: 4 / 3; /* Bevarar kamera-proportionerna */
+            background-color: #1a1a1a;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            border: 2px solid #333;
-            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            border: 2px solid #2a2a2a;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -49,33 +55,37 @@
 
         .camera-stream {
             width: 100%;
-            height: auto;
-            /* Låt bilden behålla sina naturliga proportioner */
+            height: 100%;
+            object-fit: cover;
             display: block;
             background-color: #000;
         }
 
         .stream-placeholder {
-            color: #888;
-            font-size: 16px;
+            color: #aaa;
+            font-size: 0.95rem;
             text-align: center;
-            padding: 20px;
+            padding: 15px;
         }
 
+        /* Knappkontroller för videoström */
         .stream-btn-container {
-            margin-bottom: 20px;
+            margin: 10px 0;
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            width: 100%;
+            max-width: 500px;
         }
 
         .btn-stream {
-            padding: 10px 20px;
-            font-size: 16px;
+            flex: 1;
+            padding: 12px 0;
+            font-size: 0.95rem;
             font-weight: bold;
-            border-radius: 8px;
+            border-radius: 10px;
             border: none;
             cursor: pointer;
-            transition: background-color 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
         }
 
         .btn-start {
@@ -83,42 +93,44 @@
             color: #000;
         }
 
-        .btn-start:hover {
-            background-color: #00c853;
-        }
-
         .btn-stop-stream {
             background-color: #ff5252;
             color: #fff;
         }
 
-        .btn-stop-stream:hover {
-            background-color: #d32f2f;
-        }
-
+        /* Styrkontroller anpassade för tummar på mobil */
         .controls {
             display: grid;
-            grid-template-columns: repeat(3, 80px);
-            grid-template-rows: repeat(3, 80px);
-            gap: 10px;
-            margin-top: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 320px;
+            height: 320px;
+            margin-bottom: 15px;
         }
 
         .btn {
-            background-color: #333;
+            background-color: #262626;
             color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
+            border: 1px solid #3d3d3d;
+            border-radius: 16px;
+            font-size: 2rem;
             font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             cursor: pointer;
-            user-select: none;
-            transition: background-color 0.1s;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
+            touch-action: manipulation;
         }
 
-        .btn:active {
+        /* Visuell feedback när man trycker med fingret */
+        .btn:active, .btn.active {
             background-color: #00e676;
             color: #000;
+            transform: scale(0.96);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         .btn-up {
@@ -135,6 +147,12 @@
             grid-column: 2;
             grid-row: 2;
             background-color: #d32f2f;
+            font-size: 1.1rem;
+        }
+
+        .btn-stop:active {
+            background-color: #ff1744;
+            color: #fff;
         }
 
         .btn-right {
@@ -153,25 +171,36 @@
 
     <h1>Roboten Amir</h1>
 
+    <!-- Videofönster -->
     <div class="stream-container" id="streamContainer">
-        <div id="placeholder" class="stream-placeholder">Klicka på "Starta Videoström" nedan för att visa kameran</div>
+        <div id="placeholder" class="stream-placeholder">Tryck på "Starta Kamera" för att se videon</div>
     </div>
 
+    <!-- Start / Stopp för video -->
     <div class="stream-btn-container">
-        <button class="btn-stream btn-start" onclick="toggleStream(true)">Starta Videoström</button>
-        <button class="btn-stream btn-stop-stream" onclick="toggleStream(false)">Stoppa Videoström</button>
+        <button class="btn-stream btn-start" onclick="toggleStream(true)">Starta Kamera</button>
+        <button class="btn-stream btn-stop-stream" onclick="toggleStream(false)">Stoppa Kamera</button>
     </div>
 
+    <!-- Styrknappar för mobiltummar -->
     <div class="controls">
-        <button class="btn btn-up" onmousedown="sendCmd('forward')" onmouseup="sendCmd('stop')"
-            ontouchstart="sendCmd('forward')" ontouchend="sendCmd('stop')">▲</button>
-        <button class="btn btn-left" onmousedown="sendCmd('left')" onmouseup="sendCmd('stop')"
-            ontouchstart="sendCmd('left')" ontouchend="sendCmd('stop')">◄</button>
+        <button class="btn btn-up" 
+                ontouchstart="handleTouchStart(event, 'forward')" ontouchend="handleTouchEnd(event)" 
+                onmousedown="sendCmd('forward')" onmouseup="sendCmd('stop')">▲</button>
+
+        <button class="btn btn-left" 
+                ontouchstart="handleTouchStart(event, 'left')" ontouchend="handleTouchEnd(event)" 
+                onmousedown="sendCmd('left')" onmouseup="sendCmd('stop')">◄</button>
+
         <button class="btn btn-stop" onclick="sendCmd('stop')">OFF</button>
-        <button class="btn btn-right" onmousedown="sendCmd('right')" onmouseup="sendCmd('stop')"
-            ontouchstart="sendCmd('right')" ontouchend="sendCmd('stop')">►</button>
-        <button class="btn btn-down" onmousedown="sendCmd('backward')" onmouseup="sendCmd('stop')"
-            ontouchstart="sendCmd('backward')" ontouchend="sendCmd('stop')">▼</button>
+
+        <button class="btn btn-right" 
+                ontouchstart="handleTouchStart(event, 'right')" ontouchend="handleTouchEnd(event)" 
+                onmousedown="sendCmd('right')" onmouseup="sendCmd('stop')">►</button>
+
+        <button class="btn btn-down" 
+                ontouchstart="handleTouchStart(event, 'backward')" ontouchend="handleTouchEnd(event)" 
+                onmousedown="sendCmd('backward')" onmouseup="sendCmd('stop')">▼</button>
     </div>
 
     <script>
@@ -183,27 +212,23 @@
             const placeholder = document.getElementById('placeholder');
 
             if (start) {
-                // Ta bort gammal bild om den finns
                 if (currentImg) {
                     container.removeChild(currentImg);
                 }
 
-                // Skapa en ny bildtagg dynamiskt
                 currentImg = document.createElement('img');
                 currentImg.className = 'camera-stream';
-
-                // Tvinga ny anslutning med unikt tidsvärde
                 currentImg.src = `${esp32Ip}:81/stream?t=${new Date().getTime()}`;
 
-                currentImg.onerror = function () {
-                    console.error("Kunde inte ladda videoströmmen. Kontrollera att ESP32 är igång och har IP 192.168.1.145.");
+                currentImg.onerror = function() {
+                    console.error("Kunde inte ladda videoströmmen.");
                 };
 
                 container.appendChild(currentImg);
                 placeholder.style.display = 'none';
             } else {
                 if (currentImg) {
-                    currentImg.src = ""; // Stoppa strömmen
+                    currentImg.src = "";
                     container.removeChild(currentImg);
                     currentImg = null;
                 }
@@ -214,15 +239,23 @@
         function sendCmd(command) {
             console.log("Skickar kommando:", command);
             fetch(`${esp32Ip}/control?var=car&val=${command}`, { mode: 'no-cors' })
-                .then(() => {
-                    console.log("Kommando skickat ok:", command);
-                })
                 .catch(error => {
                     console.error("Nätverksfel vid styrning:", error);
                 });
         }
 
-        // Tangentbordsstyrning (Piltangenter)
+        // Snabb touch-hantering för mobiler
+        function handleTouchStart(event, command) {
+            event.preventDefault(); // Forcerar direkt touch-respons utan fördröjning
+            sendCmd(command);
+        }
+
+        function handleTouchEnd(event) {
+            event.preventDefault();
+            sendCmd('stop');
+        }
+
+        // Tangentbordsstyrning om du också testar på dator
         document.addEventListener('keydown', (event) => {
             if (event.repeat) return;
             if (event.key === 'ArrowUp') sendCmd('forward');
